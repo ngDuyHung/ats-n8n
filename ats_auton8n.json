@@ -1,0 +1,576 @@
+{
+  "name": "ats_auto",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "analyze-cv",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -64
+      ],
+      "id": "775c7ab4-3ada-4d33-8c46-9d3bcf670ae9",
+      "name": "Webhook",
+      "webhookId": "0fabe56a-b621-4b32-ac3e-74544fe8e3ea"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Bạn là một Chuyên gia Tuyển dụng (Senior HR / Tech Recruiter) với hơn 10 năm kinh nghiệm. Nhiệm vụ của bạn là đọc nội dung Hồ sơ năng lực (CV) của ứng viên và đánh giá mức độ phù hợp của họ dựa trên Mô tả công việc (Job Description - JD) được cung cấp.\n\nHãy đánh giá một cách khách quan, khắt khe nhưng công bằng.\n\nBẮT BUỘC: Bạn CHỈ ĐƯỢC PHÉP trả về kết quả dưới dạng một Object JSON duy nhất. Không dùng Markdown (như ```json).\nCấu trúc JSON bắt buộc:\n{\n  \"score\": <Điểm số đánh giá độ phù hợp từ 0 đến 100, là số nguyên (Integer)>,\n  \"feedback\": \"<Một đoạn nhận xét ngắn gọn, chuyên nghiệp bằng Tiếng Việt (khoảng 3-4 câu). Nêu rõ 1 điểm mạnh nhất của ứng viên và 1 điểm thiếu sót lớn nhất so với JD.>\"\n}\n\nDưới đây là thông tin bạn cần xử lý:\n\n[MÔ TẢ CÔNG VIỆC (JD)]:\n{{ $('Webhook').item.json.body.jd_text }}\n\n[NỘI DUNG CV]:\n{{ $('Extract from File').item.json.text }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        -64
+      ],
+      "id": "547dfbeb-db20-4ddc-abe9-d4ead3287b3c",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Rx5bkATgymUoJqPz",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.result }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1248,
+        -64
+      ],
+      "id": "67f1fd27-e984-45b2-a27a-db0d0e7f0835",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "83fae3e5-847f-4bcb-ba7c-6fbb5afaf54f",
+              "name": "result",
+              "value": "={{ JSON.parse($json.content.parts[0].text) }}",
+              "type": "object"
+            },
+            {
+              "id": "934dcbcd-b2a6-44cf-9bdb-f1143c79d530",
+              "name": "candidate_email",
+              "value": "={{ $('Webhook').item.json.body.candidate_email }}",
+              "type": "string"
+            },
+            {
+              "id": "fd3797fc-c151-4515-84aa-823776e11088",
+              "name": "created_at",
+              "value": "={{ $now }}",
+              "type": "string"
+            },
+            {
+              "id": "a09f2514-58cf-4749-886b-8a46cf4b3643",
+              "name": "status",
+              "value": "PENDING",
+              "type": "string"
+            },
+            {
+              "id": "ddf28142-ee0e-4425-ab89-b61e2e555922",
+              "name": "job_id",
+              "value": "={{$('Webhook').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "31f4e3ca-8b3b-4189-823b-f848fae7ec50",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1056,
+        -64
+      ],
+      "id": "ff8501e6-cdea-4336-8b60-4c61210ab973",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "cv_file",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        -64
+      ],
+      "id": "9b47e836-078e-401d-ab5c-a43f431c79b2",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "applications",
+        "fields": "=candidate_email, result, created_at, status, job_id",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1456,
+        -64
+      ],
+      "id": "71b7632b-b7d6-444e-8cfb-65c3d32bce8d",
+      "name": "Insert documents",
+      "credentials": {
+        "mongoDb": {
+          "id": "RwUww2GZ4yGl5agW",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "dev.ngduyhung@gmail.com",
+        "toEmail": "={{ $('Webhook').item.json.body.candidate_email }}",
+        "subject": "[Email Xác Nhận] Xác nhận ứng tuyển thành công",
+        "html": "Chào bạn, hệ thống đã ghi nhận CV của bạn cho vị trí Frontend Dev. Chúng tôi đang xử lý và sẽ phản hồi sau khi kết thúc đợt tuyển dụng.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1664,
+        -64
+      ],
+      "id": "33c9a5e2-7252-4f54-b9a8-ed64cc8db2ad",
+      "name": "Send an Email",
+      "webhookId": "fc29f429-6ccc-4f45-914c-e381abe77bf8",
+      "credentials": {
+        "smtp": {
+          "id": "BNVBmZXScQjwc4Kx",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "GIAI ĐOẠN 1: AI TỰ ĐỘNG THU THẬP & CHẤM ĐIỂM HỒ SƠ\n",
+        "height": 240,
+        "width": 1760,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        176,
+        -112
+      ],
+      "id": "b024d6fc-f170-493b-9550-962d34c25116",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chot-so-cv",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        384
+      ],
+      "id": "d70cd994-ba1c-411e-86ed-34c4c9a40946",
+      "name": "Webhook1",
+      "webhookId": "bf03c55e-16f1-45c5-aaad-a0c568993000"
+    },
+    {
+      "parameters": {
+        "collection": "applications",
+        "options": {},
+        "query": "={\n  \"status\": \"PENDING\",\n  \"job_id\": \"{{ $('Webhook1').item.json.body.job_id }}\"\n}"
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        416,
+        384
+      ],
+      "id": "b58ea995-49cc-4c35-8914-6bf9721ff05e",
+      "name": "Find documents",
+      "credentials": {
+        "mongoDb": {
+          "id": "RwUww2GZ4yGl5agW",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9957f054-c9f9-4719-bbfb-c2d0a692c1ba",
+              "leftValue": "={{ $json.ket_qua_cuoi }}",
+              "rightValue": "PASSED",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1024,
+        384
+      ],
+      "id": "e75af420-b59c-47f4-9668-f1c08a507f37",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "collection": "applications",
+        "updateKey": "=_id",
+        "fields": "status, ket_qua_cuoi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1312,
+        384
+      ],
+      "id": "e811fd71-a576-43d7-9a85-3d2a8ac2b1a4",
+      "name": "Update documents",
+      "credentials": {
+        "mongoDb": {
+          "id": "RwUww2GZ4yGl5agW",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "dev.ngduyhung@gmail.com",
+        "toEmail": "={{ $json.candidate_email }}",
+        "subject": "[Ung tuyen thanh cong]ư",
+        "html": "email chức mừng và thông báo bộ phận HR sẽ liên hệ để xếp lịch phỏng vấn.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1312,
+        224
+      ],
+      "id": "67ce4466-fdb0-4297-be21-14f3ec492609",
+      "name": "Send an Email - Đậu",
+      "webhookId": "fc29f429-6ccc-4f45-914c-e381abe77bf8",
+      "credentials": {
+        "smtp": {
+          "id": "BNVBmZXScQjwc4Kx",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "dev.ngduyhung@gmail.com",
+        "toEmail": "={{ $json.candidate_email }}",
+        "subject": "[Email Từ chối] ",
+        "html": "email cảm ơn ứng viên đã quan tâm, từ chối lịch sự và chúc họ may mắn.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1312,
+        560
+      ],
+      "id": "7f87d5a2-18ba-4b7d-8bcc-d4c2bebcc92f",
+      "name": "Send an Email - Từ chối",
+      "webhookId": "fc29f429-6ccc-4f45-914c-e381abe77bf8",
+      "credentials": {
+        "smtp": {
+          "id": "BNVBmZXScQjwc4Kx",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "86c3456c-ca0d-4e99-9ae0-a630f1ffecda",
+              "name": "status",
+              "value": "PROCESSED",
+              "type": "string"
+            },
+            {
+              "id": "34cb170c-2c7d-41a9-ba70-45e9d8170ade",
+              "name": "",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "d5d4a167-d9fd-43a4-9304-4bbd57df27e2",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        816,
+        384
+      ],
+      "id": "d0e8c590-d012-4803-aea6-44d05b2224a4",
+      "name": "Edit Fields - Tráo nhãn"
+    },
+    {
+      "parameters": {
+        "jsCode": "let candidates = $input.all();\nlet quota = $('Webhook1').item.json.body.so_luong_tuyen || 1; \n\ncandidates.sort((a, b) => b.json.result.score - a.json.result.score);\n\nfor (let i = 0; i < candidates.length; i++) {\n  if (i < quota) {\n    candidates[i].json.ket_qua_cuoi = \"PASSED\"; // Đổi chuẩn Tiếng Anh\n  } else {\n    candidates[i].json.ket_qua_cuoi = \"FAILED\"; // Đổi chuẩn Tiếng Anh\n  }\n}\n\nreturn candidates;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        384
+      ],
+      "id": "2ce7f116-a464-4604-8a19-66f4710be0c1",
+      "name": "Code in JavaScript - hàm so sánh"
+    },
+    {
+      "parameters": {
+        "content": "GIAI ĐOẠN 2: CHỐT SỔ, SO SÁNH & GỬI MAIL HÀNG LOẠT",
+        "height": 496,
+        "width": 1760,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        176,
+        208
+      ],
+      "id": "8784b091-bdaa-420c-96c2-f65289c61c2e",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Insert documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert documents": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Find documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find documents": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript - hàm so sánh",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send an Email - Đậu",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update documents",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send an Email - Từ chối",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an Email - Đậu": {
+      "main": [
+        []
+      ]
+    },
+    "Send an Email - Từ chối": {
+      "main": [
+        []
+      ]
+    },
+    "Code in JavaScript - hàm so sánh": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields - Tráo nhãn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields - Tráo nhãn": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update documents": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "720f8b10-b0f6-4a55-9fee-3903595c6080",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e6861340a6ffe162a821422dbc659adae383bf6f752bc31c4af8abec4cac074d"
+  },
+  "id": "T8qGRRtKZCG5jn67",
+  "tags": []
+}
