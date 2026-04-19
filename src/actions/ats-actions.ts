@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 
 export async function submitCV(formData: FormData) {
   try {
-    const response = await fetch(process.env.NEXT_PUBLIC_N8N_ANALYZE_WEBHOOK!, {
+    const response = await fetch(process.env.N8N_ANALYZE_WEBHOOK!, {
       method: 'POST',
       body: formData, // Gửi trực tiếp multipart/form-data
     });
@@ -22,7 +22,7 @@ export async function submitCV(formData: FormData) {
 
 export async function finalizeSelection(jobId: string, quota: number) {
   try {
-    const response = await fetch(process.env.NEXT_PUBLIC_N8N_CHOT_SO_WEBHOOK!, {
+    const response = await fetch(process.env.N8N_CHOT_SO_WEBHOOK!, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ job_id: jobId, so_luong_tuyen: quota }),
