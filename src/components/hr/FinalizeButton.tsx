@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { CheckCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { chotSoJob } from '@/actions/job-actions';
 
 type Props = {
   jobId: string;
@@ -22,19 +23,13 @@ export function FinalizeButton({ jobId, jobTitle, quota }: Props) {
       return;
 
     setLoading(true);
-    try {
-      const webhookUrl = '/api/chot-so';
-      const res = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ job_id: jobId, so_luong_tuyen: quota }),
-      });
-      if (!res.ok) throw new Error('Lỗi kết nối n8n');
+    const result = await chotSoJob(jobId, quota);
+    setLoading(false);
+
+    if (result.success) {
       toast.success('Chốt sổ thành công! Email đang được gửi đi.');
-    } catch {
-      toast.error('Chốt sổ thất bại. Kiểm tra kết nối n8n.');
-    } finally {
-      setLoading(false);
+    } else {
+      toast.error(result.error ?? 'Chốt sổ thất bại.');
     }
   }
 

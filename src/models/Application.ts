@@ -2,7 +2,10 @@ import mongoose, { Schema, model, models } from 'mongoose';
 
 const ApplicationSchema = new Schema({
   candidate_email: { type: String, required: true },
+  candidate_name: { type: String },           // Thêm Sprint 4
+  candidate_id: { type: Schema.Types.ObjectId, ref: 'User' }, // Thêm Sprint 4
   job_id: { type: String, required: true },
+  cv_filename: { type: String },              // Thêm Sprint 4
   status: { 
     type: String, 
     enum: ['PENDING', 'PROCESSED'], 

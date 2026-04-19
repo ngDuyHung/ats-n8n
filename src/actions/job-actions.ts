@@ -120,6 +120,48 @@ export async function updateJob(
   redirect(`/hr/jobs/${jobId}`);
 }
 
+// Chốt sổ tuyển dụng — gọi n8n webhook rồi revalidate trang
+export async function chotSoJob(jobId: string, quota: number) {
+  const session = await getSession();
+  if (!session || (session.role !== 'hr' && session.role !== 'admin')) {
+    return { success: false, error: 'Không có quyền thực hiện.' };
+  }
+
+  const webhookUrl = process.env.N8N_CHOT_SO_WEBHOOK;
+  if (!webhookUrl) {
+    return { success: false, error: 'Webhook chưa được cấu hình.' };
+  }
+
+  try {
+    await connectDB();
+    const job = await Job.findById(jobId);
+    if (!job) return { success: false, error: 'Tin tuyển dụng không tồn tại.' };
+    if (session.role !== 'admin' && job.created_by.toString() !== session.userId) {
+      return { success: false, error: 'Bạn không có quyền chốt sổ tin này.' };
+    }
+
+    const res = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job_id: jobId, so_luong_tuyen: quota }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      console.error('[chotSoJob] n8n error:', res.status, errText);
+      return { success: false, error: `n8n trả về lỗi ${res.status}.` };
+    }
+  } catch (err) {
+    console.error('[chotSoJob] fetch error:', err);
+    return { success: false, error: 'Không thể kết nối đến n8n. Kiểm tra webhook.' };
+  }
+
+  revalidatePath(`/hr/jobs/${jobId}`);
+  revalidatePath('/hr/applications');
+  revalidatePath('/admin');
+  return { success: true };
+}
+
 // Đóng / mở lại job
 export async function toggleJobStatus(jobId: string) {
   const session = await getSession();

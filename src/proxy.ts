@@ -7,10 +7,10 @@ const PUBLIC_ROUTES = ['/', '/login', '/register'];
 export default async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Cho phép các route public và /jobs/*
+  // Cho phép các route public và /jobs (browse + detail), nhưng KHÔNG gồm /jobs/*/apply
   const isPublic =
     PUBLIC_ROUTES.includes(pathname) ||
-    pathname.startsWith('/jobs');
+    (pathname.startsWith('/jobs') && !pathname.endsWith('/apply'));
 
   const cookie = req.cookies.get('session')?.value;
   const session = await decrypt(cookie);
