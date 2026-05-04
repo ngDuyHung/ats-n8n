@@ -15,6 +15,7 @@ const JobSchema = z.object({
   salary_range: z.string().trim().optional(),
   deadline: z.string().refine((d) => !isNaN(Date.parse(d)), { message: 'Ngày không hợp lệ' }),
   quota: z.coerce.number().int().min(1, 'Số lượng ít nhất là 1'),
+  cover_image: z.string().trim().optional(),
 });
 
 export type JobFormState =
@@ -49,6 +50,7 @@ export async function createJob(
     salary_range: formData.get('salary_range') || undefined,
     deadline: formData.get('deadline'),
     quota: formData.get('quota'),
+    cover_image: formData.get('cover_image') || undefined,
   });
 
   if (!validated.success) {
@@ -91,6 +93,7 @@ export async function updateJob(
     salary_range: formData.get('salary_range') || undefined,
     deadline: formData.get('deadline'),
     quota: formData.get('quota'),
+    cover_image: formData.get('cover_image') || undefined,
   });
 
   if (!validated.success) {
@@ -108,10 +111,18 @@ export async function updateJob(
       return { message: 'Bạn không có quyền chỉnh sửa tin này.' };
     }
 
-    await Job.findByIdAndUpdate(jobId, {
-      ...validated.data,
+    const updateData: Record<string, unknown> = {
+      title: validated.data.title,
+      description: validated.data.description,
+      department: validated.data.department,
+      location: validated.data.location,
       deadline: new Date(validated.data.deadline),
-    });
+      quota: validated.data.quota,
+    };
+    if (validated.data.salary_range !== undefined) updateData.salary_range = validated.data.salary_range;
+    if (validated.data.cover_image !== undefined) updateData.cover_image = validated.data.cover_image;
+
+    await Job.findByIdAndUpdate(jobId, { $set: updateData });
   } catch {
     return { message: 'Đã có lỗi xảy ra, vui lòng thử lại.' };
   }

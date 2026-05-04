@@ -1,8 +1,8 @@
-import mongoose, { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const JobSchema = new Schema({
   title: { type: String, required: true },
-  description: { type: String, required: true }, // Nội dung JD đầy đủ
+  description: { type: String, required: true },
   department: { type: String, required: true },
   location: { type: String, required: true },
   salary_range: { type: String },
@@ -12,9 +12,13 @@ const JobSchema = new Schema({
     enum: ['OPEN', 'CLOSED'],
     default: 'OPEN',
   },
-  quota: { type: Number, required: true, min: 1 }, // Số lượng cần tuyển
+  quota: { type: Number, required: true, min: 1 },
+  cover_image: { type: String },
   created_by: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   created_at: { type: Date, default: Date.now },
 });
 
-export const Job = models.Job || model('Job', JobSchema, 'jobs');
+// Delete cached model in dev so schema changes take effect without full restart
+if (mongoose.models.Job) delete mongoose.models.Job;
+
+export const Job = model('Job', JobSchema, 'jobs');

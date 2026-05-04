@@ -1,8 +1,8 @@
 'use client';
 
 import type { JobFormState } from '@/actions/job-actions';
-import { useActionState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useActionState, useState } from 'react';
+import { Loader2, ImageIcon } from 'lucide-react';
 
 type JobFormProps = {
   action: (state: JobFormState, formData: FormData) => Promise<JobFormState>;
@@ -14,12 +14,14 @@ type JobFormProps = {
     salary_range?: string;
     deadline?: string;
     quota?: number;
+    cover_image?: string;
   };
   submitLabel?: string;
 };
 
 export function JobForm({ action, defaultValues = {}, submitLabel = 'Đăng tin' }: JobFormProps) {
   const [state, formAction, pending] = useActionState(action, undefined);
+  const [imageUrl, setImageUrl] = useState(defaultValues.cover_image ?? '');
 
   return (
     <form action={formAction} className="space-y-5">
@@ -107,6 +109,44 @@ export function JobForm({ action, defaultValues = {}, submitLabel = 'Đăng tin'
             className="w-full p-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
           />
           {state?.errors?.quota && <p className="text-red-500 text-xs mt-1">{state.errors.quota[0]}</p>}
+        </div>
+
+        {/* Ảnh đại diện */}
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Ảnh đại diện <span className="text-gray-400">(tuỳ chọn — dán URL ảnh)</span>
+          </label>
+          <div className="flex gap-3 items-start">
+            <div className="flex-1">
+              <div className="relative">
+                <ImageIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <input
+                  name="cover_image"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Upload ảnh lên Imgur, Cloudinary... sau đó dán link vào đây
+              </p>
+            </div>
+            {/* Preview */}
+            <div className="shrink-0 w-24 h-16 rounded-xl border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
+              {imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={imageUrl}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              ) : (
+                <ImageIcon className="w-6 h-6 text-gray-300" />
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Mô tả công việc */}

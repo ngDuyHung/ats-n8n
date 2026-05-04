@@ -55,9 +55,12 @@ export default async function proxy(req: NextRequest) {
     if (session?.role === 'admin') return NextResponse.redirect(new URL('/admin', req.nextUrl));
   }
 
-  return NextResponse.next();
+  // Inject pathname vào request header để server components đọc
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set('x-pathname', pathname);
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)'],
 };

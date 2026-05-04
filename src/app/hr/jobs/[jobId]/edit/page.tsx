@@ -55,6 +55,7 @@ export default async function EditJobPage({
             salary_range: jobAny.salary_range,
             deadline,
             quota: jobAny.quota,
+            cover_image: jobAny.cover_image,
           }}
         />
       </div>
